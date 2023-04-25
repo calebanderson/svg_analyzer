@@ -30,13 +30,16 @@ module SvgAnalyzer
     def elements
       @elements ||= begin
         text.split(text_separator).slice_before(command_regex).flat_map do |(type, *args)|
-          command = Command.find(type)
-          args.each_slice(command.arg_count).with_object([]) do |arg_set, result|
-            result << [command.char, *arg_set]
-            command = command.repeats_become
+          # Blocks weren't always evaluated in a way that allows rescue without begin
+          begin
+            command = Command.find(type)
+            args.each_slice(command.arg_count).with_object([]) do |arg_set, result|
+              result << [command.char, *arg_set]
+              command = command.repeats_become
+            end
+          rescue ArgumentError # 0 arg_count passed to #each_slice
+            [[type]]
           end
-        rescue ArgumentError # 0 arg_count passed to #each_slice
-          [[type]]
         end
       end
     end
